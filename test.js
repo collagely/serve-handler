@@ -5,7 +5,7 @@
 const handler = require('.');
 
 const options = {
-  public: '/',
+  // public: '/',
   symlinks: true,
 };
 

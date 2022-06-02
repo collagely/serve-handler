@@ -14,6 +14,7 @@ const bytes = require('bytes');
 const contentDisposition = require('content-disposition');
 const isPathInside = require('path-is-inside');
 const parseRange = require('range-parser');
+const prettyBytes = require('pretty-bytes');
 
 // Other
 const directoryTemplate = require(path.join(__dirname, './directory'));
@@ -381,6 +382,7 @@ const renderDirectory = async (
         stats = await handlers.lstat(filePath, true);
       } else {
         stats = await handlers.lstat(filePath);
+        console.log(filePath, prettyBytes(stats.size));
       }
 
       details.relative = path.join(relativePath, details.base);
@@ -415,8 +417,8 @@ const renderDirectory = async (
         delete files[index];
       }
     } catch (error) {
-		console.log(error);
-	}
+      console.log(error);
+    }
   }
 
   const toRoot = path.relative(current, absolutePath);
@@ -488,6 +490,8 @@ const renderDirectory = async (
     directory,
     paths: subPaths,
   };
+
+//   console.log(spec.files[0]);
 
   const output = acceptsJSON ? JSON.stringify(spec) : directoryTemplate(spec);
 
