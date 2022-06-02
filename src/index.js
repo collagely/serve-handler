@@ -6,7 +6,7 @@ const {realpath, lstat, createReadStream, readdir} = require('fs');
 
 // Packages
 const url = require('fast-url-parser');
-const slasher = require('./glob-slash');
+const slasher = require(path.join(__dirname, './glob-slash'));
 const minimatch = require('minimatch');
 const pathToRegExp = require('path-to-regexp');
 const mime = require('mime-types');
@@ -16,8 +16,8 @@ const isPathInside = require('path-is-inside');
 const parseRange = require('range-parser');
 
 // Other
-const directoryTemplate = require('./directory');
-const errorTemplate = require('./error');
+const directoryTemplate = require(path.join(__dirname, './directory'));
+const errorTemplate = require(path.join(__dirname, './error'));
 
 const etags = new Map();
 
@@ -116,9 +116,14 @@ const applyRewrites = (requestPath, rewrites = [], repetitive) => {
 	return fallback;
 };
 
-const ensureSlashStart = target => (target.startsWith('/') ? target : `/${target}`);
+const ensureSlashStart = target =>
+	(target.startsWith('/') ? target : `/${target}`);
 
-const shouldRedirect = (decodedPath, {redirects = [], trailingSlash}, cleanUrl) => {
+const shouldRedirect = (
+	decodedPath,
+	{redirects = [], trailingSlash},
+	cleanUrl
+) => {
 	const slashing = typeof trailingSlash === 'boolean';
 	const defaultType = 301;
 	const matchHTML = /(\.html|\/index)$/g;
@@ -273,13 +278,23 @@ const applicable = (decodedPath, configEntry) => {
 	return true;
 };
 
-const getPossiblePaths = (relativePath, extension) => [
-	path.join(relativePath, `index${extension}`),
-	relativePath.endsWith('/') ? relativePath.replace(/\/$/g, extension) : (relativePath + extension)
-].filter(item => path.basename(item) !== extension);
+const getPossiblePaths = (relativePath, extension) =>
+	[
+		path.join(relativePath, `index${extension}`),
+		relativePath.endsWith('/')
+			? relativePath.replace(/\/$/g, extension)
+			: relativePath + extension
+	].filter(item => path.basename(item) !== extension);
 
-const findRelated = async (current, relativePath, rewrittenPath, originalStat) => {
-	const possible = rewrittenPath ? [rewrittenPath] : getPossiblePaths(relativePath, '.html');
+const findRelated = async (
+	current,
+	relativePath,
+	rewrittenPath,
+	originalStat
+) => {
+	const possible = rewrittenPath
+		? [rewrittenPath]
+		: getPossiblePaths(relativePath, '.html');
 
 	let stats = null;
 
@@ -322,16 +337,25 @@ const canBeListed = (excluded, file) => {
 	return whether;
 };
 
-const renderDirectory = async (current, acceptsJSON, handlers, methods, config, paths) => {
-	const {directoryListing, trailingSlash, unlisted = [], renderSingle} = config;
-	const slashSuffix = typeof trailingSlash === 'boolean' ? (trailingSlash ? '/' : '') : '/';
+const renderDirectory = async (
+	current,
+	acceptsJSON,
+	handlers,
+	methods,
+	config,
+	paths
+) => {
+	const {
+		directoryListing,
+		trailingSlash,
+		unlisted = [],
+		renderSingle
+	} = config;
+	const slashSuffix =
+		typeof trailingSlash === 'boolean' ? (trailingSlash ? '/' : '') : '/';
 	const {relativePath, absolutePath} = paths;
 
-	const excluded = [
-		'.DS_Store',
-		'.git',
-		...unlisted
-	];
+	const excluded = ['.DS_Store', '.git', ...unlisted];
 
 	if (!applicable(relativePath, directoryListing) && !renderSingle) {
 		return {};
@@ -339,7 +363,7 @@ const renderDirectory = async (current, acceptsJSON, handlers, methods, config, 
 
 	let files = await handlers.readdir(absolutePath);
 
-	const canRenderSingle = renderSingle && (files.length === 1);
+	const canRenderSingle = renderSingle && files.length === 1;
 
 	for (let index = 0; index < files.length; index++) {
 		const file = files[index];
@@ -396,27 +420,29 @@ const renderDirectory = async (current, acceptsJSON, handlers, methods, config, 
 	const pathParts = directory.split(path.sep).filter(Boolean);
 
 	// Sort to list directories first, then sort alphabetically
-	files = files.sort((a, b) => {
-		const aIsDir = a.type === 'directory';
-		const bIsDir = b.type === 'directory';
+	files = files
+		.sort((a, b) => {
+			const aIsDir = a.type === 'directory';
+			const bIsDir = b.type === 'directory';
 
-		/* istanbul ignore next */
-		if (aIsDir && !bIsDir) {
-			return -1;
-		}
+			/* istanbul ignore next */
+			if (aIsDir && !bIsDir) {
+				return -1;
+			}
 
-		if ((bIsDir && !aIsDir) || (a.base > b.base)) {
-			return 1;
-		}
+			if ((bIsDir && !aIsDir) || a.base > b.base) {
+				return 1;
+			}
 
-		/* istanbul ignore next */
-		if (a.base < b.base) {
-			return -1;
-		}
+			/* istanbul ignore next */
+			if (a.base < b.base) {
+				return -1;
+			}
 
-		/* istanbul ignore next */
-		return 0;
-	}).filter(Boolean);
+			/* istanbul ignore next */
+			return 0;
+		})
+		.filter(Boolean);
 
 	// Add parent directory to the head of the sorted files array
 	if (toRoot.length > 0) {
@@ -436,7 +462,7 @@ const renderDirectory = async (current, acceptsJSON, handlers, methods, config, 
 
 	for (let index = 0; index < pathParts.length; index++) {
 		const parents = [];
-		const isLast = index === (pathParts.length - 1);
+		const isLast = index === pathParts.length - 1;
 
 		let before = 0;
 
@@ -464,7 +490,15 @@ const renderDirectory = async (current, acceptsJSON, handlers, methods, config, 
 	return {directory: output};
 };
 
-const sendError = async (absolutePath, response, acceptsJSON, current, handlers, config, spec) => {
+const sendError = async (
+	absolutePath,
+	response,
+	acceptsJSON,
+	current,
+	handlers,
+	config,
+	spec
+) => {
 	const {err: original, message, code, statusCode} = spec;
 
 	/* istanbul ignore next */
@@ -477,12 +511,14 @@ const sendError = async (absolutePath, response, acceptsJSON, current, handlers,
 	if (acceptsJSON) {
 		response.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-		response.end(JSON.stringify({
-			error: {
-				code,
-				message
-			}
-		}));
+		response.end(
+			JSON.stringify({
+				error: {
+					code,
+					message
+				}
+			})
+		);
 
 		return;
 	}
@@ -505,7 +541,13 @@ const sendError = async (absolutePath, response, acceptsJSON, current, handlers,
 		try {
 			stream = await handlers.createReadStream(errorPage);
 
-			const headers = await getHeaders(handlers, config, current, errorPage, stats);
+			const headers = await getHeaders(
+				handlers,
+				config,
+				current,
+				errorPage,
+				stats
+			);
 
 			response.writeHead(statusCode, headers);
 			stream.pipe(response);
@@ -516,7 +558,13 @@ const sendError = async (absolutePath, response, acceptsJSON, current, handlers,
 		}
 	}
 
-	const headers = await getHeaders(handlers, config, current, absolutePath, null);
+	const headers = await getHeaders(
+		handlers,
+		config,
+		current,
+		absolutePath,
+		null
+	);
 	headers['Content-Type'] = 'text/html; charset=utf-8';
 
 	response.writeHead(statusCode, headers);
@@ -537,13 +585,17 @@ const internalError = async (...args) => {
 	return sendError(...args);
 };
 
-const getHandlers = methods => Object.assign({
-	lstat: promisify(lstat),
-	realpath: promisify(realpath),
-	createReadStream,
-	readdir: promisify(readdir),
-	sendError
-}, methods);
+const getHandlers = methods =>
+	Object.assign(
+		{
+			lstat: promisify(lstat),
+			realpath: promisify(realpath),
+			createReadStream,
+			readdir: promisify(readdir),
+			sendError
+		},
+		methods
+	);
 
 module.exports = async (request, response, config = {}, methods = {}) => {
 	const cwd = process.cwd();
@@ -560,11 +612,19 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 	try {
 		relativePath = decodeURIComponent(url.parse(request.url).pathname);
 	} catch (err) {
-		return sendError('/', response, acceptsJSON, current, handlers, config, {
-			statusCode: 400,
-			code: 'bad_request',
-			message: 'Bad Request'
-		});
+		return sendError(
+			'/',
+			response,
+			acceptsJSON,
+			current,
+			handlers,
+			config,
+			{
+				statusCode: 400,
+				code: 'bad_request',
+				message: 'Bad Request'
+			}
+		);
 	}
 
 	let absolutePath = path.join(current, relativePath);
@@ -572,11 +632,19 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 	// Prevent path traversal vulnerabilities. We could do this
 	// by ourselves, but using the package covers all the edge cases.
 	if (!isPathInside(absolutePath, current)) {
-		return sendError(absolutePath, response, acceptsJSON, current, handlers, config, {
-			statusCode: 400,
-			code: 'bad_request',
-			message: 'Bad Request'
-		});
+		return sendError(
+			absolutePath,
+			response,
+			acceptsJSON,
+			current,
+			handlers,
+			config,
+			{
+				statusCode: 400,
+				code: 'bad_request',
+				message: 'Bad Request'
+			}
+		);
 	}
 
 	const cleanUrl = applicable(relativePath, config.cleanUrls);
@@ -610,7 +678,15 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 			stats = await handlers.lstat(absolutePath);
 		} catch (err) {
 			if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
-				return internalError(absolutePath, response, acceptsJSON, current, handlers, config, err);
+				return internalError(
+					absolutePath,
+					response,
+					acceptsJSON,
+					current,
+					handlers,
+					config,
+					err
+				);
 			}
 		}
 	}
@@ -619,14 +695,27 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 
 	if (!stats && (cleanUrl || rewrittenPath)) {
 		try {
-			const related = await findRelated(current, relativePath, rewrittenPath, handlers.lstat);
+			const related = await findRelated(
+				current,
+				relativePath,
+				rewrittenPath,
+				handlers.lstat
+			);
 
 			if (related) {
 				({stats, absolutePath} = related);
 			}
 		} catch (err) {
 			if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
-				return internalError(absolutePath, response, acceptsJSON, current, handlers, config, err);
+				return internalError(
+					absolutePath,
+					response,
+					acceptsJSON,
+					current,
+					handlers,
+					config,
+					err
+				);
 			}
 		}
 	}
@@ -636,7 +725,15 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 			stats = await handlers.lstat(absolutePath);
 		} catch (err) {
 			if (err.code !== 'ENOENT' && err.code !== 'ENOTDIR') {
-				return internalError(absolutePath, response, acceptsJSON, current, handlers, config, err);
+				return internalError(
+					absolutePath,
+					response,
+					acceptsJSON,
+					current,
+					handlers,
+					config,
+					err
+				);
 			}
 		}
 	}
@@ -646,10 +743,17 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 		let singleFile = null;
 
 		try {
-			const related = await renderDirectory(current, acceptsJSON, handlers, methods, config, {
-				relativePath,
-				absolutePath
-			});
+			const related = await renderDirectory(
+				current,
+				acceptsJSON,
+				handlers,
+				methods,
+				config,
+				{
+					relativePath,
+					absolutePath
+				}
+			);
 
 			if (related.singleFile) {
 				({stats, absolutePath, singleFile} = related);
@@ -658,12 +762,22 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 			}
 		} catch (err) {
 			if (err.code !== 'ENOENT') {
-				return internalError(absolutePath, response, acceptsJSON, current, handlers, config, err);
+				return internalError(
+					absolutePath,
+					response,
+					acceptsJSON,
+					current,
+					handlers,
+					config,
+					err
+				);
 			}
 		}
 
 		if (directory) {
-			const contentType = acceptsJSON ? 'application/json; charset=utf-8' : 'text/html; charset=utf-8';
+			const contentType = acceptsJSON
+				? 'application/json; charset=utf-8'
+				: 'text/html; charset=utf-8';
 
 			response.statusCode = 200;
 			response.setHeader('Content-Type', contentType);
@@ -686,11 +800,19 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 	// symlink while the `symlinks` option is disabled (which it is by default).
 	if (!stats || (!config.symlinks && isSymLink)) {
 		// allow for custom 404 handling
-		return handlers.sendError(absolutePath, response, acceptsJSON, current, handlers, config, {
-			statusCode: 404,
-			code: 'not_found',
-			message: 'The requested path could not be found'
-		});
+		return handlers.sendError(
+			absolutePath,
+			response,
+			acceptsJSON,
+			current,
+			handlers,
+			config,
+			{
+				statusCode: 404,
+				code: 'not_found',
+				message: 'The requested path could not be found'
+			}
+		);
 	}
 
 	// If we figured out that the target is a symlink, we need to
@@ -727,14 +849,30 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 	try {
 		stream = await handlers.createReadStream(absolutePath, streamOpts);
 	} catch (err) {
-		return internalError(absolutePath, response, acceptsJSON, current, handlers, config, err);
+		return internalError(
+			absolutePath,
+			response,
+			acceptsJSON,
+			current,
+			handlers,
+			config,
+			err
+		);
 	}
 
-	const headers = await getHeaders(handlers, config, current, absolutePath, stats);
+	const headers = await getHeaders(
+		handlers,
+		config,
+		current,
+		absolutePath,
+		stats
+	);
 
 	// eslint-disable-next-line no-undefined
 	if (streamOpts.start !== undefined && streamOpts.end !== undefined) {
-		headers['Content-Range'] = `bytes ${streamOpts.start}-${streamOpts.end}/${stats.size}`;
+		headers[
+			'Content-Range'
+		] = `bytes ${streamOpts.start}-${streamOpts.end}/${stats.size}`;
 		headers['Content-Length'] = streamOpts.end - streamOpts.start + 1;
 	}
 
@@ -744,7 +882,11 @@ module.exports = async (request, response, config = {}, methods = {}) => {
 	// Checking for `undefined` and `null` is also important, because `Range` can be `0`.
 	//
 	// eslint-disable-next-line no-eq-null
-	if (request.headers.range == null && headers.ETag && headers.ETag === request.headers['if-none-match']) {
+	if (
+		request.headers.range == null &&
+		headers.ETag &&
+		headers.ETag === request.headers['if-none-match']
+	) {
 		response.statusCode = 304;
 		response.end();
 

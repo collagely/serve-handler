@@ -10,7 +10,9 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "lint-staged": "git diff --diff-filter=ACMRT --cached --name-only '*.js' '*.jsx' | xargs zeit-eslint",
     "build-views": "dottojs -s ./src -d ./src",
-    "prepublish": "yarn run build-views"
+    "prepublish": "yarn run build-views",
+    "start": "micro test.js",
+    "dev": "micro-dev test.js"
   },
   "repository": "zeit/serve-handler",
   "keywords": [
