@@ -4,6 +4,11 @@
 
 const handler = require('.');
 
+const options = {
+  public: '/',
+  symlinks: true,
+};
+
 module.exports = async (request, response) => {
-	await handler(request, response);
+  await handler(request, response, options);
 };
